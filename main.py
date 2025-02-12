@@ -6,20 +6,7 @@ import os
 # Segmind API Key (Replace with your key)
 API_KEY = os.getenv("SEGMIND_API_KEY")
 API_URL = "https://api.segmind.com/v1/llama-v3p2-90b-vision-instruct"
-
-
-# Function to convert image to base64
-def encode_image(image_file):
-    return b64encode(image_file.read()).decode("utf-8")
-
-
-# Function to call Segmind's Vision LLM for plant analysis
-def analyze_plant_leaf(image_data):
-    payload = {
-        "messages": [
-            {
-                "role": "user",
-                "content": """
+PROMPT = """
                 **Task:** Identify the type of plant leaf and diagnose nutrient deficiency from the given image.
 
                 **Instructions:**
@@ -38,11 +25,24 @@ def analyze_plant_leaf(image_data):
                 - Provide a **concise, structured report** in Markdown format.
                 - Ensure the response is **clear, technical, and practical** without redundant statements.
                 """
-            },
+
+
+# Function to convert image to base64
+def encode_image(image_file):
+    return b64encode(image_file.read()).decode("utf-8")
+
+
+# Function to call Segmind's Vision LLM for plant analysis
+def analyze_plant_leaf(image_data):
+    payload = {
+        "messages": [
             {
-                "role": "assistant",
-                "content": "Analyzing the image and generating the nutrient deficiency report..."
-            }
+                "role": "user",
+                "content": [
+                    {"type": "text", "text": PROMPT},
+                    {"type": "image_url", "image_url": {"url": f"data:image/png;base64,{image_data}"}}
+                ]
+            },
         ]
     }
 
@@ -50,8 +50,6 @@ def analyze_plant_leaf(image_data):
     response = requests.post(API_URL, json=payload, headers=headers)
 
     if response.status_code == 200:
-        print(response.status_code, response.text)
-
         return response.json()["choices"][0]["message"]["content"]
     else:
         return f"Error {response.status_code}: {response.text}"
